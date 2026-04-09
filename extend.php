@@ -20,7 +20,7 @@ return [
         ->route('/audit', 'admin-audit'),
 
     (new Extend\Routes('api'))
-        ->get('/admin/audit-logs', 'admin-audit.index', Controllers\ListAuditLogsController::class),
+        ->get('/admin_audit_logs', 'admin-audit.index', Controllers\ListAuditLogsController::class),
 
     new Extend\Locales(__DIR__ . '/locale'),
 
