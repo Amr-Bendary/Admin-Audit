@@ -1,0 +1,30 @@
+bendary-admin-audit:
+  admin:
+    page:
+      title: Audit Logs
+      pagination: "Page {page}"
+    stats:
+      total: Total Actions
+      sensitive: Sensitive Actions
+      active_admin: Most Active Admin
+    filters:
+      search: "Search actions, targets..."
+      all_categories: All Categories
+    categories:
+      settings: Settings
+      extensions: Extensions
+      permissions: Permissions
+      system: System
+    actions:
+      update_settings: Updated Settings
+      enable_extension: Enabled Extension
+      disable_extension: Disabled Extension
+    list:
+      empty: No audit logs found matching your criteria.
+    drawer:
+      title: Action Details
+      user: Performed By
+      ip: IP Address
+      time: Timestamp
+      changes: Changes Snapshot
+      additional_meta: Additional Metadata
