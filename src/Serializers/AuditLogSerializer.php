@@ -3,7 +3,7 @@
 namespace Bendary\AdminAudit\Serializers;
 
 use Flarum\Api\Serializer\AbstractSerializer;
-use Flarum\Api\Serializer\BasicUserSerializer;
+use Flarum\Api\Serializer\UserSerializer;
 
 class AuditLogSerializer extends AbstractSerializer
 {
@@ -35,6 +35,6 @@ class AuditLogSerializer extends AbstractSerializer
      */
     protected function user($model)
     {
-        return $this->hasOne($model, BasicUserSerializer::class);
+        return $this->hasOne($model, UserSerializer::class);
     }
 }

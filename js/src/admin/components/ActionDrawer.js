@@ -34,7 +34,18 @@ export default class ActionDrawer extends Component {
             <div className="AdminAudit-metaGrid">
               <div className="AdminAudit-metaItem">
                 <span className="AdminAudit-metaLabel">{app.translator.trans('bendary-admin-audit.admin.drawer.user')}</span>
-                <span className="AdminAudit-metaVal">{log.user() ? log.user().username() : 'System'}</span>
+                <span className="AdminAudit-metaVal">
+                  {log.user() ? (
+                    <div>
+                      {log.user().username()} <small className="AdminAudit-textMuted">(ID: {log.user().id()})</small>
+                      {log.user().email() && (
+                        <div style="font-size: 12px; margin-top: 4px; color: var(--audit-text-muted);">
+                          <i className="fas fa-envelope"></i> {log.user().email()}
+                        </div>
+                      )}
+                    </div>
+                  ) : 'System'}
+                </span>
               </div>
               <div className="AdminAudit-metaItem">
                 <span className="AdminAudit-metaLabel">{app.translator.trans('bendary-admin-audit.admin.drawer.ip')}</span>
