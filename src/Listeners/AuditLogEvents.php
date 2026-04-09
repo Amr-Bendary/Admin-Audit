@@ -5,7 +5,7 @@ namespace Bendary\AdminAudit\Listeners;
 use Bendary\AdminAudit\AuditLog;
 use Flarum\Extension\Event\Disabled;
 use Flarum\Extension\Event\Enabled;
-use Flarum\Settings\Event\Saved;
+use Flarum\Settings\Event\Saving;
 use Flarum\User\User;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Support\Arr;
@@ -14,12 +14,12 @@ class AuditLogEvents
 {
     public function subscribe(Dispatcher $events)
     {
-        $events->listen(Saved::class, [$this, 'whenSettingsSaved']);
+        $events->listen(Saving::class, [$this, 'whenSettingsSaved']);
         $events->listen(Enabled::class, [$this, 'whenExtensionEnabled']);
         $events->listen(Disabled::class, [$this, 'whenExtensionDisabled']);
     }
 
-    public function whenSettingsSaved(Saved $event)
+    public function whenSettingsSaved(Saving $event)
     {
         // Settings are saved in batches usually
         $settings = $event->settings;
@@ -51,7 +51,7 @@ class AuditLogEvents
             $this->getCurrentUserId(),
             'extensions',
             'enable_extension',
-            $event->extension->name,
+            $event->extension->getId(),
             null,
             null,
             ['version' => $event->extension->getVersion()],
@@ -66,7 +66,7 @@ class AuditLogEvents
             $this->getCurrentUserId(),
             'extensions',
             'disable_extension',
-            $event->extension->name,
+            $event->extension->getId(),
             null,
             null,
             ['version' => $event->extension->getVersion()],

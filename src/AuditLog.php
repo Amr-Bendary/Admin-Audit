@@ -3,13 +3,10 @@
 namespace Bendary\AdminAudit;
 
 use Flarum\Database\AbstractModel;
-use Flarum\Database\ScopeVisibilityTrait;
 use Flarum\User\User;
 
 class AuditLog extends AbstractModel
 {
-    use ScopeVisibilityTrait;
-
     protected $table = 'admin_audit_logs';
 
     public $timestamps = false; // We will manually handle created_at or use custom dates
