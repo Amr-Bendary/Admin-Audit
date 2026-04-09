@@ -62,7 +62,7 @@ class ListAuditLogsController extends AbstractListController
         }
 
         foreach ((array) $sort as $field => $order) {
-            $query->orderBy(snake_case($field), $order);
+            $query->orderBy(\Illuminate\Support\Str::snake($field), $order);
         }
 
         $totalCount = $query->count();

@@ -55,7 +55,7 @@ class AuditLog extends AbstractModel
         $log->new_value = $newValue;
         $log->meta = $meta;
         $log->ip = $ip;
-        $log->created_at = time();
+        $log->created_at = \Carbon\Carbon::now();
 
         return $log;
     }
