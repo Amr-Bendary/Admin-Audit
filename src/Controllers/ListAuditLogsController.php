@@ -41,20 +41,20 @@ class ListAuditLogsController extends AbstractListController
         $query = AuditLog::query();
 
         // Apply filters
-        if (isset($filters['user'])) {
+        if (!empty($filters['user'])) {
             $query->where('user_id', $filters['user']);
         }
-        if (isset($filters['category'])) {
+        if (!empty($filters['category'])) {
             $query->where('category', $filters['category']);
         }
-        if (isset($filters['q'])) {
+        if (!empty($filters['q'])) {
             $search = '%' . $filters['q'] . '%';
             $query->where(function ($q) use ($search) {
                 $q->where('action', 'like', $search)
                   ->orWhere('target', 'like', $search);
             });
         }
-        if (isset($filters['dateRange'])) {
+        if (!empty($filters['dateRange'])) {
             $dates = explode(',', $filters['dateRange']);
             if (count($dates) == 2) {
                 $query->whereBetween('created_at', [$dates[0], $dates[1]]);
