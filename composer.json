@@ -1,0 +1,35 @@
+{
+    "name": "bendary/flarum-admin-audit",
+    "description": "Modern audit logging system with a Mithril-based admin dashboard UI.",
+    "type": "flarum-extension",
+    "keywords": [
+        "flarum",
+        "audit",
+        "logs"
+    ],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Amr Bendary"
+        }
+    ],
+    "require": {
+        "flarum/core": "^1.8.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Bendary\\AdminAudit\\": "src/"
+        }
+    },
+    "extra": {
+        "flarum-extension": {
+            "title": "Admin Audit",
+            "category": "feature",
+            "icon": {
+                "name": "fas fa-clipboard-list",
+                "backgroundColor": "#1d4ed8",
+                "color": "#fff"
+            }
+        }
+    }
+}

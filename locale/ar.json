@@ -1,0 +1,41 @@
+{
+  "bendary-admin-audit": {
+    "admin": {
+      "page": {
+        "title": "سجل المراجعة",
+        "pagination": "صفحة {page}"
+      },
+      "stats": {
+        "total": "إجمالي الإجراءات",
+        "sensitive": "الإجراءات الحساسة",
+        "active_admin": "المدير الأكثر نشاطاً"
+      },
+      "filters": {
+        "search": "ابحث في الإجراءات، الأهداف...",
+        "all_categories": "جميع الأقسام"
+      },
+      "categories": {
+        "settings": "الإعدادات",
+        "extensions": "الإضافات",
+        "permissions": "الصلاحيات",
+        "system": "النظام"
+      },
+      "actions": {
+        "update_settings": "تحديث الإعدادات",
+        "enable_extension": "تفعيل إضافة",
+        "disable_extension": "تعطيل إضافة"
+      },
+      "list": {
+        "empty": "لم يتم العثور على سجلات تطابق بحثك."
+      },
+      "drawer": {
+        "title": "تفاصيل الإجراء",
+        "user": "أُجري بواسطة",
+        "ip": "عنوان الـ IP",
+        "time": "وقت الإجراء",
+        "changes": "التغييرات",
+        "additional_meta": "بيانات إضافية"
+      }
+    }
+  }
+}
