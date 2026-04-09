@@ -24,6 +24,9 @@ return [
 
     new Extend\Locales(__DIR__ . '/locale'),
 
+    (new Extend\Middleware('api'))
+        ->add(Middlewares\AuditPermissionMiddleware::class),
+
     (new Extend\Event())
         ->subscribe(Listeners\AuditLogEvents::class),
 ];

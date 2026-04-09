@@ -17,6 +17,7 @@ bendary-admin-audit:
       system: System
     actions:
       update_settings: Updated Settings
+      update_permission: Updated Permissions
       enable_extension: Enabled Extension
       disable_extension: Disabled Extension
     list:

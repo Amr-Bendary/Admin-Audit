@@ -17,6 +17,7 @@ bendary-admin-audit:
       system: النظام
     actions:
       update_settings: تحديث الإعدادات
+      update_permission: تحديث الصلاحيات
       enable_extension: تفعيل إضافة
       disable_extension: تعطيل إضافة
     list:
