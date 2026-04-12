@@ -66,11 +66,10 @@ class AuditAdminActionsMiddleware implements MiddlewareInterface
                 $audit->save();
             }
 
-            // 2. User modifications - use str_contains like permissions (proven working)
-            if (in_array($method, ['POST', 'PATCH', 'DELETE']) && str_contains($path, '/api/users')) {
-                // Avoid intercepting our own audit log API or user listing GETs
-                // Only log if we're not hitting a sub-resource like /api/users/X/avatar
-                $isUserRoute = preg_match('#/api/users(/\d+)?$#', $path) || preg_match('#/api/users$#', $path);
+            // 2. User modifications - Flarum strips /api prefix before middleware
+            if (in_array($method, ['POST', 'PATCH', 'DELETE']) && str_contains($path, '/users')) {
+                // Only match /users or /users/{id}, not sub-resources like /users/1/avatar
+                $isUserRoute = preg_match('#/users(/\d+)?$#', $path);
                 
                 if ($isUserRoute) {
                     $action = 'update_user';
@@ -79,7 +78,7 @@ class AuditAdminActionsMiddleware implements MiddlewareInterface
 
                     // Extract target user ID from path
                     $targetId = null;
-                    if (preg_match('#/api/users/(\d+)#', $path, $userMatches)) {
+                    if (preg_match('#/users/(\d+)#', $path, $userMatches)) {
                         $targetId = $userMatches[1];
                     }
 
