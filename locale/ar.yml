@@ -6,6 +6,7 @@ bendary-admin-audit:
     stats:
       total: إجمالي الإجراءات
       sensitive: الإجراءات الحساسة
+      sensitive_tooltip: "الإجراءات التي تؤثر على الأمان أو التحكم في الوصول، مثل تغييرات الصلاحيات وتعديلات الأعضاء (الأدوار، كلمات المرور، إنشاء/حذف الحسابات)."
       active_admin: المدير الأكثر نشاطاً
     filters:
       search: "ابحث في الإجراءات، الأهداف..."
@@ -16,6 +17,7 @@ bendary-admin-audit:
       permissions: الصلاحيات
       users: الأعضاء
       system: النظام
+      sensitive: الإجراءات الحساسة
     actions:
       update_settings: تحديث الإعدادات
       update_permission: تحديث الصلاحيات

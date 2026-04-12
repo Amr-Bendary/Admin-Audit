@@ -29,6 +29,7 @@ export default class AuditFilters extends Component {
             <option value="extensions">{app.translator.trans('bendary-admin-audit.admin.categories.extensions')}</option>
             <option value="permissions">{app.translator.trans('bendary-admin-audit.admin.categories.permissions')}</option>
             <option value="users">{app.translator.trans('bendary-admin-audit.admin.categories.users')}</option>
+            <option value="sensitive">{app.translator.trans('bendary-admin-audit.admin.categories.sensitive')}</option>
           </select>
         </div>
       </div>

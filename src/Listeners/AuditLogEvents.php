@@ -6,9 +6,6 @@ use Bendary\AdminAudit\AuditLog;
 use Flarum\Extension\Event\Disabled;
 use Flarum\Extension\Event\Enabled;
 use Flarum\Settings\Event\Saving;
-use Flarum\User\Event\Saved as UserSaved;
-use Flarum\User\Event\Created as UserCreated;
-use Flarum\User\Event\Deleted as UserDeleted;
 use Flarum\User\User;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Support\Arr;
@@ -20,10 +17,6 @@ class AuditLogEvents
         $events->listen(Saving::class, [$this, 'whenSettingsSaved']);
         $events->listen(Enabled::class, [$this, 'whenExtensionEnabled']);
         $events->listen(Disabled::class, [$this, 'whenExtensionDisabled']);
-
-        $events->listen(UserSaved::class, [$this, 'whenUserSaved']);
-        $events->listen(UserCreated::class, [$this, 'whenUserCreated']);
-        $events->listen(UserDeleted::class, [$this, 'whenUserDeleted']);
     }
 
     public function whenSettingsSaved(Saving $event)
@@ -42,7 +35,6 @@ class AuditLogEvents
                 $types[] = 'Basic Settings';
             } elseif (str_contains($key, '.')) {
                 $prefix = explode('.', $key)[0];
-                // Flarum extensions often use flarum-tags.something layout
                 $types[] = "Extension ($prefix) Settings";
             } else {
                 $types[] = 'Settings';
@@ -106,127 +98,21 @@ class AuditLogEvents
         $audit->save();
     }
 
-    public function whenUserSaved(UserSaved $event)
+    protected function getCurrentUserId()
     {
-        $this->logUserAction('update_user', $event->user, $event->actor, $event->data);
-    }
-
-    public function whenUserCreated(UserCreated $event)
-    {
-        $this->logUserAction('create_user', $event->user, $event->actor, $event->data);
-    }
-
-    public function whenUserDeleted(UserDeleted $event)
-    {
-        $this->logUserAction('delete_user', $event->user, $event->actor ?? null, []);
-    }
-
-    protected function logUserAction($actionName, $user, $eventActor, $data)
-    {
-        try {
-            $actor = $this->getBestActor($eventActor);
-
-            if (!$actor || !$actor->isAdmin()) {
-                return;
-            }
-
-            $safeData = (array)$data;
-            $changes = [];
-
-            // 1. Robust Attribute Detection (Username, DisplayName, Email, Password)
-            $attributes = Arr::get($safeData, 'attributes', $safeData);
-            
-            if (Arr::get($attributes, 'username') || Arr::get($attributes, 'displayName')) {
-                $changes[] = 'username';
-            }
-            if (Arr::get($attributes, 'email')) {
-                $changes[] = 'email';
-            }
-            if (Arr::get($attributes, 'password')) {
-                $changes[] = 'password';
-                if (isset($safeData['attributes']['password'])) {
-                    $safeData['attributes']['password'] = '***';
-                } elseif (isset($safeData['password'])) {
-                    $safeData['password'] = '***';
-                }
-            }
-
-            // 2. Detection of Role/Group changes
-            if (Arr::has($safeData, 'relationships.groups') || Arr::has($safeData, 'groups')) {
-                $changes[] = 'groups';
-            }
-
-            $targetDesc = "User: " . ($user->display_name ?: $user->username) . " (ID: {$user->id})";
-
-            $meta = [];
-            if (!empty($changes)) {
-                $meta['modified_fields'] = $changes;
-            }
-
-            // Fallback: If no attributes were detected but it's a save, log as a general update
-            $finalAction = $actionName;
-
-            $audit = AuditLog::build(
-                $actor->id,
-                'users',
-                $finalAction,
-                $targetDesc,
-                null,
-                $safeData,
-                !empty($meta) ? $meta : null,
-                $this->getIpAddress()
-            );
-            $audit->save();
-        } catch (\Exception $e) {
-            // Silently fail to avoid breaking the application, but we've handled most cases
-        }
-    }
-
-    protected function getBestActor($eventActor = null)
-    {
-        // 1. Try actor passed by the event
-        if ($eventActor && $eventActor instanceof User && !$eventActor->isGuest()) {
-            return $eventActor;
-        }
-
-        // 2. Try our bound request context
         if (app()->bound('audit.current_request')) {
             try {
                 $request = app()->make('audit.current_request');
                 $actor = \Flarum\Http\RequestUtil::getActor($request);
                 if ($actor && $actor instanceof User && !$actor->isGuest()) {
-                    return $actor;
+                    return $actor->id;
                 }
-            } catch (\Exception $e) {}
-        }
-
-        // 3. Try Flarum's global actor if available
-        if (app()->bound('flarum.actor')) {
-            $actor = app()->make('flarum.actor');
-            if ($actor && $actor instanceof User && !$actor->isGuest()) {
-                return $actor;
-            }
-        }
-
-        // 4. Try Session fallback (Final attempt)
-        if (app()->bound('session')) {
-            $session = app()->make('session');
-            $userId = $session->get('user_id');
-            if ($userId) {
-                $actor = User::find($userId);
-                if ($actor && $actor->isAdmin()) {
-                    return $actor;
-                }
+            } catch (\Exception $e) {
+                // Ignore exception fallback
             }
         }
 
         return null;
-    }
-
-    protected function getCurrentUserId()
-    {
-        $actor = $this->getBestActor();
-        return $actor ? $actor->id : null;
     }
 
     protected function getIpAddress()

@@ -45,7 +45,11 @@ class ListAuditLogsController extends AbstractListController
             $query->where('user_id', $filters['user']);
         }
         if (!empty($filters['category'])) {
-            $query->where('category', $filters['category']);
+            if ($filters['category'] === 'sensitive') {
+                $query->whereIn('category', ['permissions', 'users']);
+            } else {
+                $query->where('category', $filters['category']);
+            }
         }
         if (!empty($filters['q'])) {
             $search = '%' . $filters['q'] . '%';
