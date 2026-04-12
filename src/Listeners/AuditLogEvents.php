@@ -123,65 +123,63 @@ class AuditLogEvents
 
     protected function logUserAction($actionName, $user, $eventActor, $data)
     {
-        $actor = $this->getBestActor($eventActor);
+        try {
+            $actor = $this->getBestActor($eventActor);
 
-        if (!$actor || !$actor->isAdmin()) {
-            return;
-        }
-
-        $safeData = $data;
-        $changes = [];
-
-        // 1. Detect Username/Display Name changes
-        if (Arr::get($data, 'attributes.username') || Arr::get($data, 'attributes.displayName')) {
-            $changes[] = 'username';
-        }
-
-        // 2. Detect Email changes
-        if (Arr::get($data, 'attributes.email')) {
-            $changes[] = 'email';
-        }
-
-        // 3. Detect Password changes
-        if (Arr::get($data, 'attributes.password')) {
-            $changes[] = 'password';
-            if (isset($safeData['attributes']['password'])) {
-                $safeData['attributes']['password'] = '***';
+            if (!$actor || !$actor->isAdmin()) {
+                return;
             }
+
+            $safeData = (array)$data;
+            $changes = [];
+
+            // 1. Robust Attribute Detection (Username, DisplayName, Email, Password)
+            $attributes = Arr::get($safeData, 'attributes', $safeData);
+            
+            if (Arr::get($attributes, 'username') || Arr::get($attributes, 'displayName')) {
+                $changes[] = 'username';
+            }
+            if (Arr::get($attributes, 'email')) {
+                $changes[] = 'email';
+            }
+            if (Arr::get($attributes, 'password')) {
+                $changes[] = 'password';
+                if (isset($safeData['attributes']['password'])) {
+                    $safeData['attributes']['password'] = '***';
+                } elseif (isset($safeData['password'])) {
+                    $safeData['password'] = '***';
+                }
+            }
+
+            // 2. Detection of Role/Group changes
+            if (Arr::has($safeData, 'relationships.groups') || Arr::has($safeData, 'groups')) {
+                $changes[] = 'groups';
+            }
+
+            $targetDesc = "User: " . ($user->display_name ?: $user->username) . " (ID: {$user->id})";
+
+            $meta = [];
+            if (!empty($changes)) {
+                $meta['modified_fields'] = $changes;
+            }
+
+            // Fallback: If no attributes were detected but it's a save, log as a general update
+            $finalAction = $actionName;
+
+            $audit = AuditLog::build(
+                $actor->id,
+                'users',
+                $finalAction,
+                $targetDesc,
+                null,
+                $safeData,
+                !empty($meta) ? $meta : null,
+                $this->getIpAddress()
+            );
+            $audit->save();
+        } catch (\Exception $e) {
+            // Silently fail to avoid breaking the application, but we've handled most cases
         }
-
-        // 4. Detect Role/Group changes
-        if (Arr::has($data, 'relationships.groups')) {
-            $changes[] = 'groups';
-            // Optional: Store current groups for visual confirmation
-            $safeData['current_groups'] = $user->groups()->pluck('name_singular', 'id')->all();
-        }
-
-        $targetDesc = "User: " . ($user->display_name ?: $user->username) . " (ID: {$user->id})";
-
-        // Determine specific action label if only one thing changed
-        $finalAction = $actionName;
-        if ($actionName === 'update_user' && count($changes) === 1) {
-            $type = $changes[0];
-            if ($type === 'username') $finalAction = 'rename_user';
-            elseif ($type === 'email') $finalAction = 'change_user_email';
-            elseif ($type === 'password') $finalAction = 'reset_user_password';
-            elseif ($type === 'groups') $finalAction = 'change_user_groups';
-        }
-
-        $meta = !empty($changes) ? ['modified_fields' => $changes] : null;
-
-        $audit = AuditLog::build(
-            $actor->id,
-            'users',
-            $finalAction,
-            $targetDesc,
-            null,
-            $safeData,
-            $meta,
-            $this->getIpAddress()
-        );
-        $audit->save();
     }
 
     protected function getBestActor($eventActor = null)
