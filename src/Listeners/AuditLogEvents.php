@@ -9,6 +9,7 @@ use Flarum\Settings\Event\Saving;
 use Flarum\User\Event\Saved as UserSaved;
 use Flarum\User\Event\Created as UserCreated;
 use Flarum\User\Event\Deleted as UserDeleted;
+use Flarum\User\Event\GroupsChanged;
 use Flarum\User\User;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Support\Arr;
@@ -24,6 +25,7 @@ class AuditLogEvents
         $events->listen(UserSaved::class, [$this, 'whenUserSaved']);
         $events->listen(UserCreated::class, [$this, 'whenUserCreated']);
         $events->listen(UserDeleted::class, [$this, 'whenUserDeleted']);
+        $events->listen(GroupsChanged::class, [$this, 'whenGroupsChanged']);
     }
 
     public function whenSettingsSaved(Saving $event)
@@ -121,8 +123,15 @@ class AuditLogEvents
         $this->logUserAction('delete_user', $event->user, $event->actor ?? null, []);
     }
 
-    protected function logUserAction($actionName, $user, $actor, $data)
+    public function whenGroupsChanged(GroupsChanged $event)
     {
+        $this->logUserAction('groups_changed', $event->user, $event->actor, ['groups' => $event->user->groups()->pluck('name', 'id')->all()]);
+    }
+
+    protected function logUserAction($actionName, $user, $eventActor, $data)
+    {
+        $actor = $this->getBestActor($eventActor);
+
         if (!$actor || !$actor->isAdmin()) {
             return;
         }
@@ -132,11 +141,13 @@ class AuditLogEvents
             $safeData['attributes']['password'] = '***';
         }
 
+        $targetDesc = "User: " . ($user->display_name ?: $user->username) . " (ID: {$user->id})";
+
         $audit = AuditLog::build(
             $actor->id,
             'users',
             $actionName,
-            'User ID ' . ($user->id ?? 'Unknown'),
+            $targetDesc,
             null,
             $safeData,
             null,
@@ -145,21 +156,39 @@ class AuditLogEvents
         $audit->save();
     }
 
-    protected function getCurrentUserId()
+    protected function getBestActor($eventActor = null)
     {
+        // 1. Try actor passed by the event
+        if ($eventActor && $eventActor instanceof User && !$eventActor->isGuest()) {
+            return $eventActor;
+        }
+
+        // 2. Try our bound request context
         if (app()->bound('audit.current_request')) {
             try {
                 $request = app()->make('audit.current_request');
                 $actor = \Flarum\Http\RequestUtil::getActor($request);
                 if ($actor && $actor instanceof User && !$actor->isGuest()) {
-                    return $actor->id;
+                    return $actor;
                 }
-            } catch (\Exception $e) {
-                // Ignore exception fallback
+            } catch (\Exception $e) {}
+        }
+
+        // 3. Try Flarum's global actor if available
+        if (app()->bound('flarum.actor')) {
+            $actor = app()->make('flarum.actor');
+            if ($actor && $actor instanceof User && !$actor->isGuest()) {
+                return $actor;
             }
         }
 
         return null;
+    }
+
+    protected function getCurrentUserId()
+    {
+        $actor = $this->getBestActor();
+        return $actor ? $actor->id : null;
     }
 
     protected function getIpAddress()
