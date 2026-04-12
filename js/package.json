@@ -1,6 +1,6 @@
 {
   "name": "@bendary/admin-audit",
-  "version": "1.3.0",
+  "version": "2.0.0",
   "description": "A comprehensive administration audit logging system for Flarum. Tracks and logs admin actions including permission changes, categorized settings updates, and extension toggles, featuring a modern dashboard.",
   "private": true,
   "scripts": {
