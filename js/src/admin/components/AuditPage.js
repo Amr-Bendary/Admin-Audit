@@ -59,7 +59,7 @@ export default class AuditPage extends ExtensionPage {
             sensitive={this.meta.sensitiveCount}
             activeAdmin={this.meta.activeAdmin}
             onSensitiveClick={() => {
-              this.filters.category = 'sensitive';
+              this.filters.category = this.filters.category === 'sensitive' ? '' : 'sensitive';
               this.page = 1;
               this.loadLogs();
             }}
