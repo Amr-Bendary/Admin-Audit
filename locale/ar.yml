@@ -22,7 +22,7 @@ bendary-admin-audit:
       enable_extension: تفعيل إضافة
       disable_extension: تعطيل إضافة
       create_user: إضافة عضو
-      update_user: تحديث بيانات عضو
+      update_user: تعديل بيانات عضو
       delete_user: حذف عضو
     list:
       empty: لم يتم العثور على سجلات تطابق بحثك.

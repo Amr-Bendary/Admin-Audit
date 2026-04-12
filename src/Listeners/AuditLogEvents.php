@@ -9,7 +9,6 @@ use Flarum\Settings\Event\Saving;
 use Flarum\User\Event\Saved as UserSaved;
 use Flarum\User\Event\Created as UserCreated;
 use Flarum\User\Event\Deleted as UserDeleted;
-use Flarum\User\Event\GroupsChanged;
 use Flarum\User\User;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Support\Arr;
@@ -25,7 +24,6 @@ class AuditLogEvents
         $events->listen(UserSaved::class, [$this, 'whenUserSaved']);
         $events->listen(UserCreated::class, [$this, 'whenUserCreated']);
         $events->listen(UserDeleted::class, [$this, 'whenUserDeleted']);
-        $events->listen(GroupsChanged::class, [$this, 'whenGroupsChanged']);
     }
 
     public function whenSettingsSaved(Saving $event)
@@ -123,11 +121,6 @@ class AuditLogEvents
         $this->logUserAction('delete_user', $event->user, $event->actor ?? null, []);
     }
 
-    public function whenGroupsChanged(GroupsChanged $event)
-    {
-        $this->logUserAction('groups_changed', $event->user, $event->actor, ['groups' => $event->user->groups()->pluck('name_singular', 'id')->all()]);
-    }
-
     protected function logUserAction($actionName, $user, $eventActor, $data)
     {
         $actor = $this->getBestActor($eventActor);
@@ -137,11 +130,36 @@ class AuditLogEvents
         }
 
         $safeData = $data;
-        if (isset($safeData['attributes']['password'])) {
-            $safeData['attributes']['password'] = '***';
+        $changes = [];
+
+        // 1. Detect Username/Display Name changes
+        if (Arr::get($data, 'attributes.username') || Arr::get($data, 'attributes.displayName')) {
+            $changes[] = 'username';
+        }
+
+        // 2. Detect Email changes
+        if (Arr::get($data, 'attributes.email')) {
+            $changes[] = 'email';
+        }
+
+        // 3. Detect Password changes
+        if (Arr::get($data, 'attributes.password')) {
+            $changes[] = 'password';
+            if (isset($safeData['attributes']['password'])) {
+                $safeData['attributes']['password'] = '***';
+            }
+        }
+
+        // 4. Detect Role/Group changes
+        if (Arr::has($data, 'relationships.groups')) {
+            $changes[] = 'groups';
+            // Optional: Store current groups for visual confirmation
+            $safeData['current_groups'] = $user->groups()->pluck('name_singular', 'id')->all();
         }
 
         $targetDesc = "User: " . ($user->display_name ?: $user->username) . " (ID: {$user->id})";
+
+        $meta = !empty($changes) ? ['modified_fields' => $changes] : null;
 
         $audit = AuditLog::build(
             $actor->id,
@@ -150,7 +168,7 @@ class AuditLogEvents
             $targetDesc,
             null,
             $safeData,
-            null,
+            $meta,
             $this->getIpAddress()
         );
         $audit->save();
