@@ -125,7 +125,7 @@ class AuditLogEvents
 
     public function whenGroupsChanged(GroupsChanged $event)
     {
-        $this->logUserAction('groups_changed', $event->user, $event->actor, ['groups' => $event->user->groups()->pluck('name', 'id')->all()]);
+        $this->logUserAction('groups_changed', $event->user, $event->actor, ['groups' => $event->user->groups()->pluck('name_singular', 'id')->all()]);
     }
 
     protected function logUserAction($actionName, $user, $eventActor, $data)
@@ -179,6 +179,18 @@ class AuditLogEvents
             $actor = app()->make('flarum.actor');
             if ($actor && $actor instanceof User && !$actor->isGuest()) {
                 return $actor;
+            }
+        }
+
+        // 4. Try Session fallback (Final attempt)
+        if (app()->bound('session')) {
+            $session = app()->make('session');
+            $userId = $session->get('user_id');
+            if ($userId) {
+                $actor = User::find($userId);
+                if ($actor && $actor->isAdmin()) {
+                    return $actor;
+                }
             }
         }
 
