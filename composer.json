@@ -1,6 +1,6 @@
 {
     "name": "bendary/flarum-admin-audit",
-    "description": "A comprehensive administration audit logging system for Flarum. Tracks and logs admin actions including permission changes, categorized settings updates, and extension toggles, featuring a modern dashboard with Dark Mode support.",
+    "description": "A comprehensive administration audit logging system for Flarum. Tracks and logs admin actions including permission changes, categorized settings updates, and extension toggles, featuring a modern dashboard.",
     "type": "flarum-extension",
     "keywords": [
         "flarum",

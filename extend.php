@@ -26,7 +26,7 @@ return [
 
     (new Extend\Middleware('api'))
         ->add(Middlewares\CaptureRequestMiddleware::class)
-        ->add(Middlewares\AuditPermissionMiddleware::class),
+        ->add(Middlewares\AuditAdminActionsMiddleware::class),
 
     (new Extend\Event())
         ->subscribe(Listeners\AuditLogEvents::class),

@@ -10,7 +10,7 @@ export default class AuditPage extends ExtensionPage {
     super.oninit(vnode);
 
     this.logs = [];
-    this.meta = { total: 0 };
+    this.meta = { total: 0, sensitiveCount: '--', activeAdmin: '--' };
     this.loading = true;
 
     this.filters = {
@@ -54,7 +54,11 @@ export default class AuditPage extends ExtensionPage {
         </div>
 
         <div className="AdminAudit-body">
-          <StatsCards total={this.meta.total} />
+          <StatsCards 
+            total={this.meta.total} 
+            sensitive={this.meta.sensitiveCount}
+            activeAdmin={this.meta.activeAdmin}
+          />
           
           <AuditFilters 
             filters={this.filters} 

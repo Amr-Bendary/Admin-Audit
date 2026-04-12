@@ -14,12 +14,16 @@ bendary-admin-audit:
       settings: Settings
       extensions: Extensions
       permissions: Permissions
+      users: Users
       system: System
     actions:
       update_settings: Updated Settings
       update_permission: Updated Permissions
       enable_extension: Enabled Extension
       disable_extension: Disabled Extension
+      create_user: Created User
+      update_user: Updated User
+      delete_user: Deleted User
     list:
       empty: No audit logs found matching your criteria.
     drawer:

@@ -14,12 +14,16 @@ bendary-admin-audit:
       settings: الإعدادات
       extensions: الإضافات
       permissions: الصلاحيات
+      users: الأعضاء
       system: النظام
     actions:
       update_settings: تحديث الإعدادات
       update_permission: تحديث الصلاحيات
       enable_extension: تفعيل إضافة
       disable_extension: تعطيل إضافة
+      create_user: إضافة عضو
+      update_user: تحديث بيانات عضو
+      delete_user: حذف عضو
     list:
       empty: لم يتم العثور على سجلات تطابق بحثك.
     drawer:

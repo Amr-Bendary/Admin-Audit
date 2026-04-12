@@ -79,7 +79,24 @@ class ListAuditLogsController extends AbstractListController
             $results->count() ? null : 0
         );
 
+        $sensitiveCount = AuditLog::whereIn('category', ['permissions', 'users'])->count();
+        $mostActiveUserLog = AuditLog::select('user_id', \Illuminate\Support\Facades\DB::raw('count(*) as total'))
+            ->whereNotNull('user_id')
+            ->groupBy('user_id')
+            ->orderByDesc('total')
+            ->first();
+            
+        $activeAdminName = '--';
+        if ($mostActiveUserLog) {
+            $adminUser = \Flarum\User\User::find($mostActiveUserLog->user_id);
+            if ($adminUser) {
+                $activeAdminName = $adminUser->display_name ?: $adminUser->username;
+            }
+        }
+
         $document->addMeta('total', $totalCount);
+        $document->addMeta('sensitiveCount', $sensitiveCount);
+        $document->addMeta('activeAdmin', $activeAdminName);
 
         return $results;
     }
