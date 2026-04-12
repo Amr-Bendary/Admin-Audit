@@ -20,7 +20,7 @@
   --audit-drawer-transform: translateX(100%);
 }
 
-[data-theme="dark"] {
+body.theme-dark, body.dark {
   --audit-bg: #111827;
   --audit-card-bg: #1f2937;
   --audit-border: #374151;
@@ -178,7 +178,8 @@
   }
 }
 
-[data-theme="dark"] .AdminAudit-listItem:hover {
+body.theme-dark .AdminAudit-listItem:hover,
+body.dark .AdminAudit-listItem:hover {
   background: rgba(255, 255, 255, 0.05);
 }
 

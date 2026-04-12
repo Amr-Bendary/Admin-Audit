@@ -21,24 +21,38 @@ class AuditLogEvents
 
     public function whenSettingsSaved(Saving $event)
     {
-        // Settings are saved in batches usually
         $settings = $event->settings;
+        $keys = array_keys($settings);
         
-        // We might not have actor in the event directly, 
-        // but typically, settings saved from admin panel happens via API 
-        // We can capture the current actor via container or check if we can get it.
-        // For simplicity, let's just log "Settings Updated".
-        // In a real robust scenario, we extract Request from IoC container if needed.
-        
+        // Categorize the specific setting change
+        $types = [];
+        foreach ($keys as $key) {
+            if (str_starts_with($key, 'theme_') || str_starts_with($key, 'custom_')) {
+                $types[] = 'Appearance Settings';
+            } elseif (str_starts_with($key, 'mail_')) {
+                $types[] = 'Mail Settings';
+            } elseif (str_starts_with($key, 'forum_') || $key === 'default_locale') {
+                $types[] = 'Basic Settings';
+            } elseif (str_contains($key, '.')) {
+                $prefix = explode('.', $key)[0];
+                // Flarum extensions often use flarum-tags.something layout
+                $types[] = "Extension ($prefix) Settings";
+            } else {
+                $types[] = 'Settings';
+            }
+        }
+        $types = array_unique($types);
+        $targetDesc = count($types) > 0 ? implode(', ', $types) : 'Settings Updated';
+
         $actorId = $this->getCurrentUserId();
 
         $audit = AuditLog::build(
             $actorId,
             'settings',
             'update_settings',
-            'Multiple Settings', // Or we could join keys
-            null, // Could fetch old values if needed, but not provided by this event out of box easily
-            $settings, // new values
+            $targetDesc, 
+            null, 
+            $settings, 
             null,
             $this->getIpAddress()
         );
@@ -47,14 +61,19 @@ class AuditLogEvents
 
     public function whenExtensionEnabled(Enabled $event)
     {
+        $extension = $event->extension;
         $audit = AuditLog::build(
             $this->getCurrentUserId(),
             'extensions',
             'enable_extension',
-            $event->extension->getId(),
+            $extension->getId(),
             null,
             null,
-            ['version' => $event->extension->getVersion()],
+            [
+                'version' => $extension->getVersion(),
+                'name' => $extension->name,
+                'title' => $extension->composerJsonAttribute('extra.flarum-extension.title')
+            ],
             $this->getIpAddress()
         );
         $audit->save();
@@ -62,14 +81,19 @@ class AuditLogEvents
 
     public function whenExtensionDisabled(Disabled $event)
     {
+        $extension = $event->extension;
         $audit = AuditLog::build(
             $this->getCurrentUserId(),
             'extensions',
             'disable_extension',
-            $event->extension->getId(),
+            $extension->getId(),
             null,
             null,
-            ['version' => $event->extension->getVersion()],
+            [
+                'version' => $extension->getVersion(),
+                'name' => $extension->name,
+                'title' => $extension->composerJsonAttribute('extra.flarum-extension.title')
+            ],
             $this->getIpAddress()
         );
         $audit->save();
@@ -77,32 +101,30 @@ class AuditLogEvents
 
     protected function getCurrentUserId()
     {
-        // Fallback or via DI, since Flarum events don't always pass the actor.
-        // Normally, for admin actions, the API request holds the actor.
-        // We can get it from the request if we inject ServerRequestInterface,
-        // but since this is a listener, we might be out of request scope sometimes.
-        // By looking up the container:
-        try {
-            $request = resolve(\Psr\Http\Message\ServerRequestInterface::class);
-            $actor = $request->getAttribute('actor');
-            if ($actor && $actor instanceof User && !$actor->isGuest()) {
-                return $actor->id;
+        if (app()->bound('audit.current_request')) {
+            try {
+                $request = app()->make('audit.current_request');
+                $actor = \Flarum\Http\RequestUtil::getActor($request);
+                if ($actor && $actor instanceof User && !$actor->isGuest()) {
+                    return $actor->id;
+                }
+            } catch (\Exception $e) {
+                // Ignore exception fallback
             }
-        } catch (\Exception $e) {
-            // Ignored
         }
 
-        return null; // System
+        return null;
     }
 
     protected function getIpAddress()
     {
-        try {
-            $request = resolve(\Psr\Http\Message\ServerRequestInterface::class);
-            $serverParams = $request->getServerParams();
-            return Arr::get($serverParams, 'REMOTE_ADDR');
-        } catch (\Exception $e) {
-            // Ignored
+        if (app()->bound('audit.current_request')) {
+            try {
+                $request = app()->make('audit.current_request');
+                return Arr::get($request->getServerParams(), 'REMOTE_ADDR');
+            } catch (\Exception $e) {
+                // Ignore exception fallback
+            }
         }
 
         return null;

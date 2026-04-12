@@ -1,6 +1,6 @@
 {
     "name": "bendary/flarum-admin-audit",
-    "description": "Modern audit logging system with a Mithril-based admin dashboard UI.",
+    "description": "A comprehensive administration audit logging system for Flarum. Tracks and logs admin actions including permission changes, categorized settings updates, and extension toggles, featuring a modern dashboard with Dark Mode support.",
     "type": "flarum-extension",
     "keywords": [
         "flarum",

@@ -1,7 +1,7 @@
 {
   "name": "@bendary/admin-audit",
-  "version": "0.1.0",
-  "description": "Admin Audit Extension for Flarum",
+  "version": "1.0.9",
+  "description": "A comprehensive administration audit logging system for Flarum. Tracks and logs admin actions including permission changes, categorized settings updates, and extension toggles, featuring a modern dashboard with Dark Mode support.",
   "private": true,
   "scripts": {
     "dev": "webpack --mode development --watch",
