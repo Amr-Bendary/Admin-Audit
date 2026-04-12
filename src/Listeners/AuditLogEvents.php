@@ -159,12 +159,22 @@ class AuditLogEvents
 
         $targetDesc = "User: " . ($user->display_name ?: $user->username) . " (ID: {$user->id})";
 
+        // Determine specific action label if only one thing changed
+        $finalAction = $actionName;
+        if ($actionName === 'update_user' && count($changes) === 1) {
+            $type = $changes[0];
+            if ($type === 'username') $finalAction = 'rename_user';
+            elseif ($type === 'email') $finalAction = 'change_user_email';
+            elseif ($type === 'password') $finalAction = 'reset_user_password';
+            elseif ($type === 'groups') $finalAction = 'change_user_groups';
+        }
+
         $meta = !empty($changes) ? ['modified_fields' => $changes] : null;
 
         $audit = AuditLog::build(
             $actor->id,
             'users',
-            $actionName,
+            $finalAction,
             $targetDesc,
             null,
             $safeData,

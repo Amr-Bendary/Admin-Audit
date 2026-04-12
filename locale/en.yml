@@ -23,6 +23,10 @@ bendary-admin-audit:
       disable_extension: Disabled Extension
       create_user: Created User
       update_user: User Modified
+      rename_user: User Renamed
+      change_user_email: Email Changed
+      reset_user_password: Password Reset
+      change_user_groups: Roles Modified
       delete_user: Deleted User
     list:
       empty: No audit logs found matching your criteria.
