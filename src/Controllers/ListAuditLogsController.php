@@ -80,7 +80,7 @@ class ListAuditLogsController extends AbstractListController
         );
 
         $sensitiveCount = AuditLog::whereIn('category', ['permissions', 'users'])->count();
-        $mostActiveUserLog = AuditLog::select('user_id', \Illuminate\Support\Facades\DB::raw('count(*) as total'))
+        $mostActiveUserLog = AuditLog::selectRaw('user_id, count(*) as total')
             ->whereNotNull('user_id')
             ->groupBy('user_id')
             ->orderByDesc('total')
