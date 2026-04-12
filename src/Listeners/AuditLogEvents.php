@@ -6,6 +6,9 @@ use Bendary\AdminAudit\AuditLog;
 use Flarum\Extension\Event\Disabled;
 use Flarum\Extension\Event\Enabled;
 use Flarum\Settings\Event\Saving;
+use Flarum\User\Event\Saved as UserSaved;
+use Flarum\User\Event\Created as UserCreated;
+use Flarum\User\Event\Deleted as UserDeleted;
 use Flarum\User\User;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Support\Arr;
@@ -17,6 +20,10 @@ class AuditLogEvents
         $events->listen(Saving::class, [$this, 'whenSettingsSaved']);
         $events->listen(Enabled::class, [$this, 'whenExtensionEnabled']);
         $events->listen(Disabled::class, [$this, 'whenExtensionDisabled']);
+
+        $events->listen(UserSaved::class, [$this, 'whenUserSaved']);
+        $events->listen(UserCreated::class, [$this, 'whenUserCreated']);
+        $events->listen(UserDeleted::class, [$this, 'whenUserDeleted']);
     }
 
     public function whenSettingsSaved(Saving $event)
@@ -94,6 +101,45 @@ class AuditLogEvents
                 'name' => $extension->name,
                 'title' => $extension->composerJsonAttribute('extra.flarum-extension.title')
             ],
+            $this->getIpAddress()
+        );
+        $audit->save();
+    }
+
+    public function whenUserSaved(UserSaved $event)
+    {
+        $this->logUserAction('update_user', $event->user, $event->actor, $event->data);
+    }
+
+    public function whenUserCreated(UserCreated $event)
+    {
+        $this->logUserAction('create_user', $event->user, $event->actor, $event->data);
+    }
+
+    public function whenUserDeleted(UserDeleted $event)
+    {
+        $this->logUserAction('delete_user', $event->user, $event->actor ?? null, []);
+    }
+
+    protected function logUserAction($actionName, $user, $actor, $data)
+    {
+        if (!$actor || !$actor->isAdmin()) {
+            return;
+        }
+
+        $safeData = $data;
+        if (isset($safeData['attributes']['password'])) {
+            $safeData['attributes']['password'] = '***';
+        }
+
+        $audit = AuditLog::build(
+            $actor->id,
+            'users',
+            $actionName,
+            'User ID ' . ($user->id ?? 'Unknown'),
+            null,
+            $safeData,
+            null,
             $this->getIpAddress()
         );
         $audit->save();

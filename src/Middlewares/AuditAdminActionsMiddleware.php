@@ -52,39 +52,7 @@ class AuditAdminActionsMiddleware implements MiddlewareInterface
                 $audit->save();
             }
 
-            // 2. Users Log
-            if (preg_match('/\/api\/users(\/[0-9]+)?$/', $path)) {
-                if (in_array($method, ['POST', 'PATCH', 'DELETE'])) {
-                    $action = 'update_user';
-                    if ($method === 'POST') $action = 'create_user';
-                    if ($method === 'DELETE') $action = 'delete_user';
 
-                    $targetId = null;
-                    if (preg_match('/\/api\/users\/([0-9]+)$/', $path, $matches)) {
-                        $targetId = $matches[1];
-                    }
-                    
-                    $targetDesc = 'User ID ' . ($targetId ?? 'New');
-
-                    // Filter out sensitive fields
-                    $safeBody = $body;
-                    if (isset($safeBody['data']['attributes']['password'])) {
-                        $safeBody['data']['attributes']['password'] = '***';
-                    }
-
-                    $audit = AuditLog::build(
-                        $actor->id,
-                        'users',
-                        $action,
-                        $targetDesc,
-                        null,
-                        $safeBody, // Store the dispatched edits cleanly
-                        null,
-                        $ip
-                    );
-                    $audit->save();
-                }
-            }
 
         } catch (\Exception $e) {
             // Fail silently to avoid breaking the application sequence
