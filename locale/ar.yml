@@ -38,4 +38,6 @@ bendary-admin-audit:
       ip: عنوان الـ IP
       time: وقت الإجراء
       changes: التغييرات
+      before: قبل
+      after: بعد
       additional_meta: بيانات إضافية

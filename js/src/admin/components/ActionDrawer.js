@@ -61,15 +61,32 @@ export default class ActionDrawer extends Component {
               <div className="AdminAudit-diffSection">
                 <h4>{app.translator.trans('bendary-admin-audit.admin.drawer.changes')}</h4>
                 
-                {log.oldValue() && (
-                  <div className="AdminAudit-codeBlock AdminAudit-codeBlock--old">
-                    <pre><code>{JSON.stringify(log.oldValue(), null, 2)}</code></pre>
+                {log.oldValue() && log.newValue() ? (
+                  <div className="AdminAudit-diffGrid">
+                    <div className="AdminAudit-diffCol">
+                      <div className="AdminAudit-diffLabel AdminAudit-diffLabel--old">
+                        <i className="fas fa-minus-circle"></i> {app.translator.trans('bendary-admin-audit.admin.drawer.before')}
+                      </div>
+                      <div className="AdminAudit-codeBlock AdminAudit-codeBlock--old">
+                        <pre><code>{JSON.stringify(log.oldValue(), null, 2)}</code></pre>
+                      </div>
+                    </div>
+                    <div className="AdminAudit-diffCol">
+                      <div className="AdminAudit-diffLabel AdminAudit-diffLabel--new">
+                        <i className="fas fa-plus-circle"></i> {app.translator.trans('bendary-admin-audit.admin.drawer.after')}
+                      </div>
+                      <div className="AdminAudit-codeBlock AdminAudit-codeBlock--new">
+                        <pre><code>{JSON.stringify(log.newValue(), null, 2)}</code></pre>
+                      </div>
+                    </div>
                   </div>
-                )}
-                
-                {log.newValue() && (
-                  <div className="AdminAudit-codeBlock AdminAudit-codeBlock--new">
-                    <pre><code>{JSON.stringify(log.newValue(), null, 2)}</code></pre>
+                ) : (
+                  <div>
+                    {log.newValue() && (
+                      <div className="AdminAudit-codeBlock AdminAudit-codeBlock--new">
+                        <pre><code>{JSON.stringify(log.newValue(), null, 2)}</code></pre>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

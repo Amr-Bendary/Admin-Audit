@@ -451,6 +451,39 @@ body.dark .AdminAudit-listItem:hover {
   }
 }
 
+.AdminAudit-diffGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+
+  @media (max-width: 600px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.AdminAudit-diffCol {
+  min-width: 0;
+}
+
+.AdminAudit-diffLabel {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  &--old {
+    color: var(--audit-red);
+  }
+
+  &--new {
+    color: var(--audit-green);
+  }
+}
+
 .AdminAudit-codeBlock {
   background: var(--audit-bg);
   border: 1px solid var(--audit-border);

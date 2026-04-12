@@ -37,5 +37,7 @@ bendary-admin-audit:
       user: Performed By
       ip: IP Address
       time: Timestamp
-      changes: Changes Snapshot
+      changes: Changes
+      before: Before
+      after: After
       additional_meta: Additional Metadata

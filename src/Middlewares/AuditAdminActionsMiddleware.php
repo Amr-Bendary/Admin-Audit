@@ -4,6 +4,7 @@ namespace Bendary\AdminAudit\Middlewares;
 
 use Bendary\AdminAudit\AuditLog;
 use Flarum\Http\RequestUtil;
+use Flarum\User\User;
 use Illuminate\Support\Arr;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -14,17 +15,36 @@ class AuditAdminActionsMiddleware implements MiddlewareInterface
 {
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
+        $path = $request->getUri()->getPath();
+        $method = $request->getMethod();
+
+        // ── BEFORE handler: Capture "before" state for user modifications ──
+        $beforeState = null;
+        if (in_array($method, ['PATCH', 'DELETE']) && preg_match('#/users/(\d+)$#', $path, $preMatches)) {
+            try {
+                $targetUser = User::find($preMatches[1]);
+                if ($targetUser) {
+                    $beforeState = [
+                        'username' => $targetUser->username,
+                        'email' => $targetUser->email,
+                        'display_name' => $targetUser->display_name,
+                        'groups' => $targetUser->groups()->pluck('name_singular', 'id')->all(),
+                    ];
+                }
+            } catch (\Exception $e) {
+                // If we can't snapshot, proceed without it
+            }
+        }
+
+        // ── Execute the request ──
         $response = $handler->handle($request);
         $statusCode = $response->getStatusCode();
 
-        // Ensure it's a successful modifying operation
+        // Only log successful modifying operations
         if (!in_array($statusCode, [200, 201, 204])) {
             return $response;
         }
 
-        $path = $request->getUri()->getPath();
-        $method = $request->getMethod();
-        
         try {
             $actor = RequestUtil::getActor($request);
             if (!$actor || !$actor->isAdmin()) {
@@ -40,13 +60,6 @@ class AuditAdminActionsMiddleware implements MiddlewareInterface
                 $body = json_decode($rawBody, true);
                 try { $request->getBody()->rewind(); } catch (\Exception $e) {}
             }
-
-            // ===== DEBUG LOG (temporary) =====
-            // This will help us understand exactly what the middleware sees
-            $debugFile = sys_get_temp_dir() . '/flarum_audit_debug.log';
-            $debugEntry = date('Y-m-d H:i:s') . " | Method: {$method} | Path: {$path} | Status: {$statusCode} | BodyType: " . gettype($body) . " | BodyKeys: " . (is_array($body) ? implode(',', array_keys($body)) : 'N/A') . "\n";
-            file_put_contents($debugFile, $debugEntry, FILE_APPEND);
-            // ===== END DEBUG LOG =====
 
             // 1. Permissions Log
             if ($method === 'POST' && (str_contains($path, '/api/permission') || str_contains($path, '/permission'))) {
@@ -66,9 +79,8 @@ class AuditAdminActionsMiddleware implements MiddlewareInterface
                 $audit->save();
             }
 
-            // 2. User modifications - Flarum strips /api prefix before middleware
+            // 2. User modifications (Flarum strips /api prefix)
             if (in_array($method, ['POST', 'PATCH', 'DELETE']) && str_contains($path, '/users')) {
-                // Only match /users or /users/{id}, not sub-resources like /users/1/avatar
                 $isUserRoute = preg_match('#/users(/\d+)?$#', $path);
                 
                 if ($isUserRoute) {
@@ -101,7 +113,8 @@ class AuditAdminActionsMiddleware implements MiddlewareInterface
                     if (isset($attributes['isEmailConfirmed'])) $changes[] = 'emailConfirmed';
                     if (isset($attributes['nickname'])) $changes[] = 'nickname';
 
-                    // Build target description from response
+                    // ── Build "after" state from response ──
+                    $afterState = null;
                     $targetDesc = 'User ID ' . ($targetId ?? 'New');
                     try {
                         $responseBody = (string) $response->getBody();
@@ -111,8 +124,68 @@ class AuditAdminActionsMiddleware implements MiddlewareInterface
                         if ($userName) {
                             $targetDesc = "User: {$userName} (ID: " . Arr::get($responseData, 'data.id', $targetId ?? 'New') . ")";
                         }
+
+                        // Build after state from response attributes
+                        $responseAttrs = Arr::get($responseData, 'data.attributes', []);
+                        $afterState = [
+                            'username' => Arr::get($responseAttrs, 'username'),
+                            'email' => Arr::get($responseAttrs, 'email'),
+                            'display_name' => Arr::get($responseAttrs, 'displayName'),
+                        ];
+
+                        // Get groups from response relationships
+                        $includedGroups = Arr::get($responseData, 'included', []);
+                        $groupNames = [];
+                        foreach ($includedGroups as $included) {
+                            if (Arr::get($included, 'type') === 'groups') {
+                                $groupNames[Arr::get($included, 'id')] = Arr::get($included, 'attributes.nameSingular', Arr::get($included, 'attributes.namePlural', ''));
+                            }
+                        }
+                        if (!empty($groupNames)) {
+                            $afterState['groups'] = $groupNames;
+                        }
+
                         $response->getBody()->rewind();
                     } catch (\Exception $e) {}
+
+                    // ── Build the diff: only include fields that actually changed ──
+                    $oldDiff = null;
+                    $newDiff = null;
+
+                    if ($beforeState && $afterState) {
+                        $oldDiff = [];
+                        $newDiff = [];
+
+                        // Compare each field
+                        foreach (['username', 'email', 'display_name'] as $field) {
+                            $before = $beforeState[$field] ?? null;
+                            $after = $afterState[$field] ?? null;
+                            if ($before !== null && $after !== null && $before !== $after) {
+                                $oldDiff[$field] = $before;
+                                $newDiff[$field] = $after;
+                            }
+                        }
+
+                        // Compare groups
+                        $beforeGroups = $beforeState['groups'] ?? [];
+                        $afterGroups = $afterState['groups'] ?? [];
+                        if ($beforeGroups != $afterGroups) {
+                            $oldDiff['groups'] = $beforeGroups;
+                            $newDiff['groups'] = $afterGroups;
+                        }
+
+                        // Check for password change
+                        if (in_array('password', $changes)) {
+                            $oldDiff['password'] = '(unchanged)';
+                            $newDiff['password'] = '(changed - redacted)';
+                        }
+
+                        // If nothing actually changed, don't show diff
+                        if (empty($oldDiff)) {
+                            $oldDiff = null;
+                            $newDiff = null;
+                        }
+                    }
 
                     $meta = !empty($changes) ? ['modified_fields' => $changes] : null;
 
@@ -121,22 +194,17 @@ class AuditAdminActionsMiddleware implements MiddlewareInterface
                         'users',
                         $action,
                         $targetDesc,
-                        null,
-                        $safeBody,
+                        $oldDiff,   // old_value: what it was before
+                        $newDiff ?? $safeBody,  // new_value: what it is now (fallback to raw body)
                         $meta,
                         $ip
                     );
                     $audit->save();
-
-                    // Debug confirmation
-                    file_put_contents($debugFile, "  >> USER ACTION LOGGED: {$action} | Target: {$targetDesc} | Changes: " . implode(',', $changes) . "\n", FILE_APPEND);
                 }
             }
 
         } catch (\Exception $e) {
-            // Log the exception for debugging
-            $debugFile = sys_get_temp_dir() . '/flarum_audit_debug.log';
-            file_put_contents($debugFile, date('Y-m-d H:i:s') . " | EXCEPTION: " . $e->getMessage() . "\n", FILE_APPEND);
+            // Fail silently to avoid breaking the application
         }
 
         return $response;
